@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tact Tech Service Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css" rel="stylesheet">
+<style>
+  :root {
+    --navy: #06142e;
+    --navy-2: #0b1f45;
+    --card: #0a1630;
+    --red: #b3121b;
+    --red-bright: #e2232e;
+    --text: #ffffff;
+    --muted: rgba(255,255,255,0.72);
+    --line: rgba(255,255,255,0.14);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--navy); color: var(--text); font-family: Inter, system-ui, sans-serif; }
+
+  .tt-section { position: relative; width: 100%; height: 100vh; min-height: 640px; overflow: hidden; background: var(--navy); }
+  #map { position: absolute; inset: 0; }
+
+  /* Left copy column, matching the live site section */
+  .tt-copy {
+    position: absolute; z-index: 3; left: 0; top: 0; bottom: 0; width: min(46%, 640px);
+    padding: clamp(40px, 9vh, 110px) 0 40px clamp(24px, 15vw, 220px);
+    background: linear-gradient(90deg, rgba(6,20,46,0.92) 0%, rgba(6,20,46,0.78) 62%, rgba(6,20,46,0) 100%);
+    display: flex; flex-direction: column; justify-content: center; pointer-events: auto;
+  }
+  .tt-copy h2 { font-family: "Cormorant Garamond", Georgia, serif; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; font-size: clamp(30px, 3.4vw, 50px); line-height: 1.32; margin: 0 0 22px; }
+  .tt-copy .hint { color: var(--muted); font-size: 17px; margin: 0 0 22px; }
+  .tt-copy p { color: rgba(255,255,255,0.86); font-size: 17px; line-height: 1.6; margin: 0 0 18px; max-width: 34em; }
+  .tt-copy ul { margin: 0 0 40px; padding-left: 20px; color: rgba(255,255,255,0.86); font-size: 17px; line-height: 1.75; }
+  .tt-btns { display: flex; gap: 28px; flex-wrap: wrap; }
+  .tt-btn { display: inline-flex; align-items: center; gap: 12px; height: 56px; padding: 0 28px; font-size: 16px; text-decoration: none; color: #fff; }
+  .tt-btn.primary { background: var(--red); font-weight: 600; }
+  .tt-btn.ghost { border: 1px solid rgba(255,255,255,0.85); }
+  .tt-btn svg { width: 18px; height: 18px; }
+
+  /* Real aerial footage: the 3D zoom hands off to this as the camera lands */
+  .tt-footage { position: absolute; inset: 0; z-index: 1; overflow: hidden; opacity: 0; pointer-events: none; background: transparent;
+    transition: opacity calc(1.3s * var(--ts, 1)) ease-in-out; }
+  #map { transition: filter calc(1.3s * var(--ts, 1)) ease-in-out; }
+  .tt-section.footage-on #map { filter: blur(6px) brightness(1.08); }
+  .tt-footage video { width: 100%; height: 100%; object-fit: cover; display: block; transform: scale(1.18);
+    transition: transform calc(3s * var(--ts, 1)) cubic-bezier(.15,.7,.2,1); filter: saturate(.92) contrast(1.03); }
+  .tt-footage.show { opacity: 1; }
+  .tt-footage.show video { transform: scale(1); }
+  .tt-footage::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(6,20,46,.25) 0%, rgba(6,20,46,0) 30%, rgba(6,20,46,0) 70%, rgba(6,20,46,.35) 100%); }
+  .tt-section.footage-on .tt-pin { opacity: 0; pointer-events: none; }
+
+  /* Pins */
+  /* The marker element itself is positioned by MapLibre (inline transform), so it must not transition transform.
+     Hover/active scaling lives on the inner .tt-pin-inner. */
+  .tt-pin { width: 34px; height: 46px; padding: 0; border: 0; background: none; cursor: pointer; transition: opacity calc(.35s * var(--ts, 1)) ease; }
+  .tt-pin-inner { width: 100%; height: 100%; transform-origin: 50% 100%; transition: transform calc(.25s * var(--ts, 1)) ease; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.45)); }
+  .tt-pin svg { width: 100%; height: 100%; display: block; }
+  .tt-pin:hover .tt-pin-inner, .tt-pin:focus-visible .tt-pin-inner { transform: translateY(-3px) scale(1.12); }
+  .tt-pin:focus-visible { outline: none; }
+  .tt-pin.is-dim { opacity: 0; pointer-events: none; }
+  .tt-pin.is-active .tt-pin-inner { transform: scale(1.18); }
+  .tt-pin .pulse { transform-origin: 17px 17px; animation: tt-pulse 2.2s ease-out infinite; }
+  .tt-pin.city { width: 15px; height: 15px; }
+  .tt-pin.hq { width: 30px; height: 30px; }
+  .tt-pin.hq .tt-pin-inner { transform-origin: 50% 50%; }
+  .tt-pin.hq:hover .tt-pin-inner, .tt-pin.hq:focus-visible .tt-pin-inner, .tt-pin.hq.is-active .tt-pin-inner { transform: scale(1.18); }
+  .tt-pin.city .tt-pin-inner { transform-origin: 50% 50%; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.55)); }
+  .tt-pin.city:hover .tt-pin-inner, .tt-pin.city:focus-visible .tt-pin-inner { transform: scale(1.5); }
+  .tt-pin.city.is-active .tt-pin-inner { transform: scale(1.5); }
+  .tt-pin.hq { z-index: 2; }
+  @keyframes tt-pulse { 0% { opacity: .55; transform: scale(.6); } 100% { opacity: 0; transform: scale(2.1); } }
+
+  .tt-label { position: absolute; z-index: 2; pointer-events: none; color: #fff; font-size: 12px; font-weight: 600; letter-spacing: .02em; padding: 4px 8px; background: rgba(6,20,46,0.78); border: 1px solid var(--line); border-radius: 4px; white-space: nowrap; opacity: 0; transform: translateY(4px); transition: opacity .2s, transform .2s; }
+  .tt-label.show { opacity: 1; transform: none; }
+
+  /* Landmark card */
+  .tt-card {
+    position: absolute; z-index: 4; width: 340px; max-width: calc(100% - 32px);
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.55);
+    opacity: 0; transform: translateY(14px) scale(.96); transform-origin: right center; pointer-events: none;
+    transition: opacity calc(.45s * var(--ts, 1)) ease, transform calc(.55s * var(--ts, 1)) cubic-bezier(.2,.8,.2,1);
+  }
+  .tt-card.show { opacity: 1; transform: none; pointer-events: auto; }
+  .tt-card .photo { position: relative; height: 176px; background: #11203d center/cover no-repeat; }
+  .tt-card .photo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,22,48,0) 55%, rgba(10,22,48,0.85) 100%); }
+  .tt-card .landmark { position: absolute; left: 14px; bottom: 10px; z-index: 1; font-size: 12px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 6px; }
+  .tt-card .landmark svg { width: 13px; height: 13px; }
+  .tt-card .body { padding: 16px 18px 18px; }
+  .tt-card .eyebrow { color: var(--red-bright); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 4px; }
+  .tt-card h3 { margin: 0 0 4px; font-size: 22px; font-weight: 700; letter-spacing: .01em; }
+  .tt-card .county { color: var(--muted); font-size: 13px; margin-bottom: 10px; }
+  .tt-card .lead { font-size: 14px; line-height: 1.5; color: rgba(255,255,255,0.88); margin: 0 0 12px; }
+  .tt-card .cities-cap { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: rgba(255,255,255,0.55); margin: 0 0 7px; }
+  .tt-card .cities { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
+  .tt-card .cities span.is-here { background: rgba(226,35,46,0.22); border-color: rgba(226,35,46,0.7); color: #fff; }
+  .tt-card .cities span { font-size: 11.5px; padding: 3px 8px; border-radius: 999px; background: rgba(255,255,255,0.08); border: 1px solid var(--line); color: rgba(255,255,255,0.86); }
+  .tt-card .feat { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; border-top: 1px solid var(--line); padding-top: 12px; font-size: 12px; color: rgba(255,255,255,0.82); }
+  .tt-card .feat div { display: flex; gap: 6px; align-items: flex-start; line-height: 1.35; }
+  .tt-card .feat svg { width: 13px; height: 13px; flex: none; margin-top: 1px; color: var(--red-bright); }
+  .tt-card .actions { margin-top: 14px; }
+  .tt-card .cta { display: block; text-align: center; color: #fff; font-size: 13.5px; font-weight: 600; text-decoration: none; background: var(--red); padding: 11px 12px; border-radius: 6px; }
+  .tt-card .cta:hover { background: #c8161f; }
+  .tt-card .back { position: absolute; z-index: 2; top: 10px; right: 10px; color: #fff; background: rgba(6,20,46,0.72); border: 1px solid rgba(255,255,255,0.25); border-radius: 999px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; padding: 5px 11px; backdrop-filter: blur(4px); }
+  .tt-card .back:hover { background: rgba(6,20,46,0.92); }
+  .tt-card .credit { font-size: 9.5px; color: rgba(255,255,255,0.4); margin-top: 10px; }
+
+  .maplibregl-ctrl-attrib { font-size: 10px; background: rgba(6,20,46,0.6) !important; color: rgba(255,255,255,0.55); }
+  .maplibregl-ctrl-attrib a { color: rgba(255,255,255,0.7); }
+  .maplibregl-ctrl-attrib-button { filter: invert(1); }
+
+  /* Embed mode: map only, copy column hidden (the site keeps its own text layers) */
+  body.embed-map .tt-copy { display: none; }
+
+  @media (max-width: 900px) {
+    .tt-section { height: auto; min-height: 0; display: flex; flex-direction: column; }
+    .tt-copy { position: relative; order: 1; width: 100%; padding: 48px 20px 28px; background: var(--navy); }
+    .tt-mapwrap { position: relative; order: 2; height: 640px; }
+    .tt-card { width: auto; transform-origin: center bottom; }
+    .tt-card .photo { height: 140px; }
+    .tt-card .feat { display: none; }
+  }
+  @media (min-width: 901px) { .tt-mapwrap { position: absolute; inset: 0; } }
+  .hint-touch { display: none; }
+  @media (hover: none) { .hint-hover { display: none; } .hint-touch { display: inline; } }
+  @media (prefers-reduced-motion: reduce) { .tt-pin .pulse { animation: none; } }
+</style>
+</head>
+<body>
+<section class="tt-section" id="tt-section">
+  <div class="tt-mapwrap" id="tt-mapwrap"><div id="map"></div>
+    <div class="tt-footage" id="tt-footage"><video id="tt-video" muted playsinline loop preload="none"></video></div>
+  </div>
+
+  <div class="tt-copy" id="tt-copy">
+    <h2>See if we serve<br>your area</h2>
+    <p class="hint"><span class="hint-hover">Hover over pins for more information</span><span class="hint-touch">Tap a pin for more information</span></p>
+    <p>From Palm Beach to Miami-Dade and beyond, Tact Tech Security Solutions delivers elite protection across South Florida. We know the communities we serve because we’re part of them.</p>
+    <ul>
+      <li>24/7 operational support</li>
+      <li>Local guard coverage available</li>
+      <li>Armed and unarmed personnel available</li>
+      <li>Customized staffing based on client requirements</li>
+    </ul>
+    <div class="tt-btns">
+      <a class="tt-btn primary" href="tel:+15616015280"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1z"/></svg>(561) 601-5280</a>
+      <a class="tt-btn ghost tt-contact" href="/contact-us" target="_top">CONTACT US</a>
+    </div>
+  </div>
+
+  <article class="tt-card" id="tt-card" aria-live="polite">
+    <div class="photo" id="tt-photo"><button class="back" id="tt-back" type="button" aria-label="Back to all service areas">← All areas</button><div class="landmark"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z"/></svg><span id="tt-landmark"></span></div></div>
+    <div class="body">
+      <div class="eyebrow" id="tt-eyebrow"></div>
+      <h3 id="tt-title"></h3>
+      <div class="county" id="tt-county"></div>
+      <p class="lead" id="tt-lead"></p>
+      <div class="cities-cap" id="tt-cities-cap"></div>
+      <div class="cities" id="tt-cities"></div>
+      <div class="feat">
+        <div><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>24/7 operational support</div>
+        <div><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>Local guard coverage</div>
+        <div><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>Armed and unarmed personnel</div>
+        <div><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>Customized staffing</div>
+      </div>
+      <div class="actions">
+        <a class="cta tt-contact" href="/contact-us" target="_top">Request a Free Security Assessment</a>
+      </div>
+      <div class="credit" id="tt-credit"></div>
+    </div>
+  </article>
+</section>
+
+<script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
+<script>
+(function () {
+  // ---- Locations: one pin per city on Taylor's 29 Jul 2026 list, 31 in all ----
+  // He asked for HQ at its street address and every other pin at the city's municipal center, so each pin sits on that city's
+  // city hall (verified against the city's site, OpenStreetMap or the US Census geocoder; see pin-locations.csv).
+  // Palm City, Jensen Beach and Tradition have no city hall: a named civic point is used instead.
+  // ---- Settings for the Framer embed ----
+  // SHOW_COPY: true = this file draws the section text too. false = map only (keep Framer's own text layers on top).
+  const SHOW_COPY = true;
+  // SHOW_3D_BUILDINGS: false keeps every frame photographic (real satellite imagery, then real drone footage).
+  // true adds grey 3D tower blocks, which read as "animated" next to real footage.
+  const SHOW_3D_BUILDINGS = false;
+  // Photos: a file name is loaded from PHOTO_BASE; a full https:// URL (e.g. a Framer asset link) is used as-is.
+  const PHOTO_BASE = "photos/";
+  // ---- FOR FRAMER: paste the web address of each uploaded file between the quotes. ----
+  // Left blank, the file is loaded from the photos/ and footage/ folders next to this file (fine for local testing).
+  const ASSET_URLS = {
+    "photos/vero.jpg": "",
+    "photos/psl.jpg": "",
+    "photos/stuart.jpg": "",
+    "photos/wpb.jpg": "",
+    "photos/hq.jpg": "",
+    "photos/ftl.jpg": "",
+    "photos/miami.jpg": "",
+    "footage/vero-beach.mp4": "",
+    "footage/port-st-lucie.mp4": "",
+    "footage/stuart.mp4": "",
+    "footage/west-palm-loop.mp4": "",
+    "footage/boynton-hq.mp4": "",
+    "footage/fort-lauderdale.mp4": "",
+    "footage/miami-loop.mp4": "",
+  };
+  // Where the "Contact us" and "Request a Free Security Assessment" buttons go. They open in the main window, not inside the embed.
+  const CONTACT_URL = "https://streamlined-happen-506432--rebuild-about-page-f7qllvt0y.framer.app/contact-us";
+  const asset = (path) => (ASSET_URLS[path] || "").trim() || path;
+  // PIN_SET: "county" = the agreed layout, 7 pins (HQ plus one city per county), each card listing its county's cities.
+  //          "all"    = a pin for every one of the 31 cities in Taylor's 29 Jul list (compact dots; 24 of them have no drone footage).
+  const PIN_SET = "county";
+  const COUNTY_PIN_IDS = ["vero", "psl", "stuart", "wpb", "hq", "ftl", "miami"];
+  const LOCATIONS = [
+    {"id": "vero", "city": "Vero Beach", "county": "Indian River County", "lat": 27.638436, "lng": -80.394551, "address": "1053 20th Pl, Vero Beach, FL 32960", "pin": "Vero Beach City Hall", "landmark": "Vero Beach waterfront", "photo": "vero.jpg", "credit": "Kiran891, CC BY-SA 4.0", "bearing": 75, "footage": "footage/vero-beach.mp4", "footageLoop": false},
+    {"id": "sebastian", "city": "Sebastian", "county": "Indian River County", "lat": 27.817627, "lng": -80.474805, "address": "1225 Main St, Sebastian, FL 32958", "pin": "Sebastian City Hall", "landmark": "Sebastian Inlet", "photo": "sebastian.jpg", "credit": "Leonard J. DeFrancisci, CC BY-SA 3.0", "bearing": 80},
+    {"id": "fort-pierce", "city": "Fort Pierce", "county": "St. Lucie County", "lat": 27.447584, "lng": -80.325812, "address": "100 N US Highway 1, Fort Pierce, FL 34950", "pin": "Fort Pierce City Hall", "landmark": "Fort Pierce City Marina", "photo": "fort-pierce.jpg", "credit": "JonathanPuello, CC BY-SA 4.0", "bearing": 80},
+    {"id": "psl", "city": "Port St. Lucie", "county": "St. Lucie County", "lat": 27.273657, "lng": -80.345253, "address": "121 SW Port St. Lucie Blvd, Port St. Lucie, FL 34984", "pin": "Port St. Lucie City Hall", "landmark": "Clover Park", "photo": "psl.jpg", "credit": "Jonathan Puello, CC BY-SA 4.0", "bearing": 40, "footage": "footage/port-st-lucie.mp4", "footageLoop": false},
+    {"id": "tradition", "city": "Tradition", "county": "St. Lucie County", "lat": 27.267862, "lng": -80.432755, "address": "Tradition Square, Port St. Lucie, FL 34987", "pin": "Tradition Square (town center, a community within Port St. Lucie)", "landmark": "Lake Tradition", "photo": "tradition.jpg", "credit": "Serge Yatunin, CC BY-SA 4.0", "bearing": 80},
+    {"id": "jensen-beach", "city": "Jensen Beach", "county": "Martin County", "lat": 27.250049, "lng": -80.230416, "address": "NE Indian River Dr, Jensen Beach, FL 34957", "pin": "Downtown Jensen Beach (unincorporated; community center point)", "landmark": "Causeway Circle, Jensen Beach", "photo": "jensen-beach.jpg", "credit": "SZtephen B Calvert Clariosophic, CC BY-SA 3.0", "bearing": 80},
+    {"id": "stuart", "city": "Stuart", "county": "Martin County", "lat": 27.200546, "lng": -80.254926, "address": "121 SW Flagler Ave, Stuart, FL 34994", "pin": "Stuart City Hall", "landmark": "Downtown Stuart", "photo": "stuart.jpg", "credit": "Jonathan Puello, CC BY-SA 4.0", "bearing": 35, "footage": "footage/stuart.mp4", "footageLoop": false},
+    {"id": "palm-city", "city": "Palm City", "county": "Martin County", "lat": 27.17255, "lng": -80.277647, "address": "2551 SW Matheson Ave, Palm City, FL 34990", "pin": "Peter & Julie Cummings Library (unincorporated; no city hall)", "landmark": "Peter & Julie Cummings Library", "photo": "palm-city.jpg", "credit": "Stephen B Calvert Clariosophic, CC BY-SA 3.0", "bearing": 60},
+    {"id": "indiantown", "city": "Indiantown", "county": "Martin County", "lat": 27.02141, "lng": -80.464922, "address": "15516 SW Osceola St, Indiantown, FL 34956", "pin": "Indiantown Village Hall", "landmark": "Historic Seminole Inn", "photo": "indiantown.jpg", "credit": "SebasTorrente, CC BY-SA 3.0", "bearing": 80},
+    {"id": "jupiter", "city": "Jupiter", "county": "Palm Beach County", "lat": 26.931739, "lng": -80.102783, "address": "210 Military Trail, Jupiter, FL 33458", "pin": "Jupiter Town Hall", "landmark": "Jupiter Inlet Lighthouse", "photo": "jupiter.jpg", "credit": "Bureau of Land Management, Public domain", "bearing": 80},
+    {"id": "pahokee", "city": "Pahokee", "county": "Palm Beach County", "lat": 26.822038, "lng": -80.668067, "address": "207 Begonia Dr, Pahokee, FL 33476", "pin": "Pahokee City Hall", "landmark": "Pahokee Marina, Lake Okeechobee", "photo": "pahokee.jpg", "credit": "Ebyabe, CC BY-SA 3.0", "bearing": 300},
+    {"id": "wpb", "city": "West Palm Beach", "county": "Palm Beach County", "lat": 26.71415, "lng": -80.054428, "address": "401 Clematis St, West Palm Beach, FL 33401", "pin": "West Palm Beach City Hall", "landmark": "Downtown West Palm Beach", "photo": "wpb.jpg", "credit": "Jud McCranie, CC BY-SA 4.0", "bearing": 268, "footage": "footage/west-palm-loop.mp4"},
+    {"id": "belle-glade", "city": "Belle Glade", "county": "Palm Beach County", "lat": 26.682201, "lng": -80.669066, "address": "110 Dr. Martin Luther King Jr. Blvd W, Belle Glade, FL 33430", "pin": "Belle Glade City Hall", "landmark": "“Her Soil Is Her Fortune” welcome sign", "photo": "belle-glade.jpg", "credit": "Jair, CC BY-SA 4.0", "bearing": 290},
+    {"id": "wellington", "city": "Wellington", "county": "Palm Beach County", "lat": 26.655138, "lng": -80.237742, "address": "12300 Forest Hill Blvd, Wellington, FL 33414", "pin": "Wellington Village Hall", "landmark": "Winter Equestrian Festival", "photo": "wellington.jpg", "credit": "Julia Rubinic, CC BY 2.0", "bearing": 80},
+    {"id": "lake-worth-beach", "city": "Lake Worth Beach", "county": "Palm Beach County", "lat": 26.616006, "lng": -80.057411, "address": "7 N Dixie Hwy, Lake Worth Beach, FL 33460", "pin": "Lake Worth Beach City Hall", "landmark": "Lake Worth Beach Pier", "photo": "lake-worth-beach.jpg", "credit": "The original uploader was Eighties1980 at English Wikipedia., CC BY 2.5", "bearing": 80},
+    {"id": "greenacres", "city": "Greenacres", "county": "Palm Beach County", "lat": 26.607061, "lng": -80.135511, "address": "5800 Melaleuca Ln, Greenacres, FL 33463", "pin": "Greenacres City Hall", "landmark": "City of Greenacres", "photo": "greenacres.jpg", "credit": "Eightiesdude / Eightiesdude at English Wikipedia, Public domain", "bearing": 80},
+    {"id": "hq", "city": "Boynton Beach", "county": "Palm Beach County", "lat": 26.558919, "lng": -80.073905, "address": "170 Commerce Rd, Unit 5, Boynton Beach, FL 33426", "pin": "Tact Tech Security Solutions headquarters", "landmark": "Tact Tech HQ · 170 Commerce Road, Unit 5", "photo": "hq.jpg", "credit": "Quintin Soloviev, CC BY 4.0", "bearing": 80, "footage": "footage/boynton-hq.mp4", "footageLoop": false, "hq": true, "lead": "Our corporate headquarters and 24/7 Security Operations & Dispatch Center, serving all of South Florida."},
+    {"id": "delray-beach", "city": "Delray Beach", "county": "Palm Beach County", "lat": 26.463816, "lng": -80.07468, "address": "100 NW 1st Ave, Delray Beach, FL 33444", "pin": "Delray Beach City Hall", "landmark": "Downtown Delray Beach & Atlantic Avenue", "photo": "delray-beach.jpg", "credit": "Quintin Soloviev, CC BY 4.0", "bearing": 80},
+    {"id": "boca-raton", "city": "Boca Raton", "county": "Palm Beach County", "lat": 26.350919, "lng": -80.090615, "address": "201 W Palmetto Park Rd, Boca Raton, FL 33432", "pin": "Boca Raton City Hall", "landmark": "Historic Old Town Hall", "photo": "boca-raton.jpg", "credit": "Ebyabe, CC BY-SA 3.0", "bearing": 80},
+    {"id": "pompano-beach", "city": "Pompano Beach", "county": "Broward County", "lat": 26.231434, "lng": -80.126334, "address": "100 W Atlantic Blvd, Pompano Beach, FL 33060", "pin": "Pompano Beach City Hall", "landmark": "Pompano Beach Fishing Pier", "photo": "pompano-beach.jpg", "credit": "Quintin Soloviev, CC BY 4.0", "bearing": 80},
+    {"id": "sunrise", "city": "Sunrise", "county": "Broward County", "lat": 26.168859, "lng": -80.292745, "address": "10770 W Oakland Park Blvd, Sunrise, FL 33351", "pin": "Sunrise City Hall", "landmark": "Amerant Bank Arena", "photo": "sunrise.jpg", "credit": "Gatorfan252525, CC BY-SA 4.0", "bearing": 80},
+    {"id": "lauderhill", "city": "Lauderhill", "county": "Broward County", "lat": 26.165338, "lng": -80.225931, "address": "5581 W Oakland Park Blvd, Lauderhill, FL 33313", "pin": "Lauderhill City Hall", "landmark": "Central Broward Park & Stadium", "photo": "lauderhill.jpg", "credit": "Brian Crawford, CC BY 2.0", "bearing": 80},
+    {"id": "ftl", "city": "Fort Lauderdale", "county": "Broward County", "lat": 26.123677, "lng": -80.143282, "address": "100 N Andrews Ave, Fort Lauderdale, FL 33301", "pin": "Fort Lauderdale City Hall", "landmark": "Downtown Fort Lauderdale", "photo": "ftl.jpg", "credit": "KeanoManu, CC BY-SA 4.0", "bearing": 235, "footage": "footage/fort-lauderdale.mp4", "footageLoop": false},
+    {"id": "weston", "city": "Weston", "county": "Broward County", "lat": 26.091549, "lng": -80.380209, "address": "17200 Royal Palm Blvd, Weston, FL 33326", "pin": "Weston City Hall", "landmark": "Weston city gateway", "photo": "weston.jpg", "credit": "AITFFan1, CC BY-SA 4.0", "bearing": 80},
+    {"id": "davie", "city": "Davie", "county": "Broward County", "lat": 26.065732, "lng": -80.234788, "address": "6591 Orange Dr, Davie, FL 33314", "pin": "Davie Town Hall", "landmark": "Davie Town Hall", "photo": "davie.jpg", "credit": "Tamanoeconomico, CC BY-SA 4.0", "bearing": 80},
+    {"id": "hollywood", "city": "Hollywood", "county": "Broward County", "lat": 26.011083, "lng": -80.159458, "address": "2600 Hollywood Blvd, Hollywood, FL 33020", "pin": "Hollywood City Hall", "landmark": "Hollywood Beach Broadwalk", "photo": "hollywood.jpg", "credit": "Tamanoeconomico, CC BY-SA 4.0", "bearing": 80},
+    {"id": "miramar", "city": "Miramar", "county": "Broward County", "lat": 25.986853, "lng": -80.301374, "address": "2300 Civic Center Pl, Miramar, FL 33025", "pin": "Miramar City Hall", "landmark": "Miramar neighborhoods", "photo": "miramar.jpg", "credit": "AccuTour Digital Media Solutions, CC BY 3.0", "bearing": 80},
+    {"id": "hallandale-beach", "city": "Hallandale Beach", "county": "Broward County", "lat": 25.980591, "lng": -80.14282, "address": "400 S Federal Hwy, Hallandale Beach, FL 33009", "pin": "Hallandale Beach City Hall", "landmark": "Gulfstream Park", "photo": "hallandale-beach.jpg", "credit": "Aht820, Public domain", "bearing": 80},
+    {"id": "miami-beach", "city": "Miami Beach", "county": "Miami-Dade County", "lat": 25.792768, "lng": -80.135386, "address": "1700 Convention Center Dr, Miami Beach, FL 33139", "pin": "Miami Beach City Hall", "landmark": "Ocean Drive Art Deco District", "photo": "miami-beach.jpg", "credit": "Robbschultz69, CC BY-SA 4.0", "bearing": 80},
+    {"id": "miami", "city": "Miami", "county": "Miami-Dade County", "lat": 25.769463, "lng": -80.197602, "address": "444 SW 2nd Ave, Miami, FL 33130", "pin": "City of Miami Administration, Miami Riverside Center (City Hall chambers are at Dinner Key, 3500 Pan American Dr)", "landmark": "Downtown Miami & Biscayne Bay", "photo": "miami.jpg", "credit": "Euthman, CC BY 4.0", "bearing": 82, "footage": "footage/miami-loop.mp4", "pitch": 50},
+    {"id": "homestead", "city": "Homestead", "county": "Miami-Dade County", "lat": 25.472187, "lng": -80.475655, "address": "100 Civic Ct, Homestead, FL 33030", "pin": "Homestead City Hall", "landmark": "Homestead-Miami Speedway", "photo": "homestead.jpg", "credit": "Chris Green, Public domain", "bearing": 80},
+  ];
+  // Taylor's city list per county, in his order (29 Jul 2026 email). Each card shows its county's list with the current city highlighted.
+  const COUNTY_CITIES = {
+    "Palm Beach County": ["Boca Raton", "Boynton Beach", "Delray Beach", "Greenacres", "Jupiter", "Lake Worth Beach", "Wellington", "West Palm Beach", "Belle Glade", "Pahokee"],
+    "Martin County": ["Indiantown", "Stuart", "Palm City", "Jensen Beach"],
+    "St. Lucie County": ["Port St. Lucie", "Fort Pierce", "Tradition"],
+    "Indian River County": ["Vero Beach", "Sebastian"],
+    "Broward County": ["Davie", "Fort Lauderdale", "Hallandale Beach", "Hollywood", "Lauderhill", "Miramar", "Pompano Beach", "Sunrise", "Weston"],
+    "Miami-Dade County": ["Homestead", "Miami", "Miami Beach"],
+  };
+
+  const params = new URLSearchParams(location.search);
+  // Demo recording only: ?ts=6 plays every animation 6x slower so frames can be captured, then sped back up.
+  const TS = Math.max(1, parseFloat(params.get("ts")) || 1);
+  document.documentElement.style.setProperty("--ts", TS);
+  if (!SHOW_COPY || params.get("mode") === "map") document.body.classList.add("embed-map");
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const isNarrow = () => window.matchMedia("(max-width: 900px)").matches;
+
+  document.querySelectorAll(".tt-contact").forEach((a) => { a.href = CONTACT_URL; });
+  const section = document.getElementById("tt-section");
+  const mapwrap = document.getElementById("tt-mapwrap");
+  const copy = document.getElementById("tt-copy");
+  const card = document.getElementById("tt-card");
+
+  // ---- Map style: Esri satellite imagery + OpenFreeMap 3D buildings ----
+  const style = {
+    version: 8,
+    glyphs: "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
+    sources: {
+      satellite: {
+        type: "raster", tileSize: 256, maxzoom: 19,
+        tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
+        attribution: "Imagery © Esri, Maxar, Earthstar Geographics"
+      },
+      ofm: { type: "vector", url: "https://tiles.openfreemap.org/planet", attribution: "© OpenFreeMap © OpenStreetMap contributors" }
+    },
+    layers: [
+      { id: "bg", type: "background", paint: { "background-color": "#06142e" } },
+      { id: "sat", type: "raster", source: "satellite",
+        paint: { "raster-saturation": ["interpolate", ["linear"], ["zoom"], 6, 0.15, 14, 0.05], "raster-contrast": 0.1,
+                 "raster-brightness-max": ["interpolate", ["linear"], ["zoom"], 5, 0.82, 12, 0.97], "raster-resampling": "linear", "raster-fade-duration": 250 } },
+      // 3D towers only: low-rise buildings stay as the real satellite photo (actual roofs, streets, pools, cars);
+      // anything 15 m+ is raised from real OpenStreetMap footprints and heights in neutral glass/concrete tones.
+      { id: "buildings-3d", type: "fill-extrusion", source: "ofm", "source-layer": "building", minzoom: 13.5,
+        filter: [">=", ["coalesce", ["get", "render_height"], 0], 15],
+        paint: {
+          "fill-extrusion-color": ["match", ["%", ["to-number", ["id"], 0], 5],
+            0, "#c4cdd7", 1, "#b5c0cc", 2, "#d2d8de", 3, "#aab6c2", "#bfc6cc"],
+          "fill-extrusion-height": ["interpolate", ["linear"], ["zoom"], 13.5, 0, 14.2, ["get", "render_height"]],
+          "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
+          "fill-extrusion-opacity": 0.95,
+          "fill-extrusion-vertical-gradient": true
+        } }
+    ],
+    sky: {
+      "sky-color": "#0b1f45", "horizon-color": "#3a5c8f", "fog-color": "#0b1f45",
+      "sky-horizon-blend": 0.6, "horizon-fog-blend": 0.5, "fog-ground-blend": 0.35, "atmosphere-blend": 0.8
+    }
+  };
+
+  if (!SHOW_3D_BUILDINGS) style.layers = style.layers.filter((l) => l.id !== "buildings-3d");
+
+  const OVERVIEW_BOUNDS = [[-81.75, 25.45], [-79.85, 27.85]];
+  const overviewPadding = () => {
+    const w = mapwrap.clientWidth;
+    if (isNarrow() || document.body.classList.contains("embed-map")) return { top: 40, bottom: 40, left: 40, right: 40 };
+    return { top: PIN_SET === "all" ? 26 : 60, bottom: PIN_SET === "all" ? 26 : 60, left: Math.round(w * 0.5), right: Math.round(w * 0.06) };
+  };
+  const focusPadding = () => {
+    const w = mapwrap.clientWidth, h = mapwrap.clientHeight;
+    if (isNarrow()) return { top: 30, bottom: Math.round(h * 0.62), left: 20, right: 20 };
+    // keep the city in the right half, with room for the card on its left
+    return { top: 40, bottom: 40, left: Math.round(w * 0.56), right: Math.round(w * 0.04) };
+  };
+
+  const map = new maplibregl.Map({
+    container: "map", style, bounds: OVERVIEW_BOUNDS, fitBoundsOptions: { padding: overviewPadding() },
+    interactive: false, attributionControl: { compact: true }, maxPitch: 75, fadeDuration: 200
+  });
+
+  let home = null;
+  const saveHome = () => { home = { center: map.getCenter(), zoom: map.getZoom(), padding: map.getPadding() }; };
+  map.once("load", saveHome);
+
+  // ---- Pins ----
+  const dotSVG = `<svg viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="7" fill="#d0141e" stroke="#fff" stroke-width="2"/><circle cx="9" cy="9" r="2.4" fill="#fff"/></svg>`;
+  const hqSVG = `<svg viewBox="0 0 34 34" aria-hidden="true" style="overflow:visible"><circle class="pulse" cx="17" cy="17" r="15" fill="#e2232e"/><circle cx="17" cy="17" r="15" fill="#d0141e" stroke="#fff" stroke-width="2"/><path d="M17 8.6l2.6 5.4 5.9.8-4.3 4.1 1 5.8L17 21.9l-5.2 2.8 1-5.8-4.3-4.1 5.9-.8z" fill="#fff"/></svg>`;
+  const pinSVG = (hq) => `
+    <svg viewBox="0 0 34 46" aria-hidden="true">
+      <circle class="pulse" cx="17" cy="17" r="15" fill="#e2232e"/>
+      <path d="M17 1C8.2 1 1 8.1 1 16.9 1 28.3 17 45 17 45s16-16.7 16-28.1C33 8.1 25.8 1 17 1z" fill="#d0141e" stroke="#fff" stroke-width="1.5"/>
+      ${hq ? '<path d="M17 8.2l2.6 5.4 5.9.8-4.3 4.1 1 5.8L17 21.5l-5.2 2.8 1-5.8-4.3-4.1 5.9-.8z" fill="#fff"/>'
+           : '<circle cx="17" cy="16.5" r="5.4" fill="#fff"/>'}
+    </svg>`;
+
+  const label = document.createElement("div");
+  label.className = "tt-label"; section.appendChild(label);
+
+  const COMPACT = PIN_SET === "all";
+  const PINS = COMPACT ? LOCATIONS : LOCATIONS.filter((l) => COUNTY_PIN_IDS.includes(l.id));
+  const markers = PINS.map((loc) => {
+    const el = document.createElement("button");
+    el.type = "button"; el.className = !COMPACT ? "tt-pin" : loc.hq ? "tt-pin hq" : "tt-pin city";
+    el.setAttribute("aria-label", `${loc.hq ? "Headquarters, " : ""}${loc.city}, ${loc.county}`);
+    // 7-pin layout: the original teardrop pins, tip on the address. 31-pin layout: dots centered on the address
+    // (a tall teardrop at HQ would cover Lake Worth Beach, 2 miles north).
+    el.innerHTML = `<div class="tt-pin-inner">${!COMPACT ? pinSVG(loc.hq) : loc.hq ? hqSVG : dotSVG}</div>`;
+    const marker = new maplibregl.Marker({ element: el, anchor: COMPACT ? "center" : "bottom" }).setLngLat([loc.lng, loc.lat]).addTo(map);
+    let hoverTimer = null;
+    el.addEventListener("mouseenter", () => {
+      showLabel(loc, el);
+      // pins sit close together in Broward and Palm Beach, so a city waits a beat before flying in (passing over it only shows the label)
+      clearTimeout(hoverTimer); hoverTimer = setTimeout(() => activate(loc), (COMPACT && !loc.hq ? 280 : 140) * TS);
+    });
+    el.addEventListener("mouseleave", () => { clearTimeout(hoverTimer); hideLabel(); });
+    el.addEventListener("focus", () => activate(loc));
+    el.addEventListener("click", (e) => { e.stopPropagation(); activate(loc); });
+    return { loc, el, marker };
+  });
+
+  function showLabel(loc, el) {
+    if (active) return;
+    const r = el.getBoundingClientRect(), s = section.getBoundingClientRect();
+    label.textContent = loc.hq ? `${loc.city} · Headquarters` : `${loc.city} · ${loc.county}`;
+    label.style.left = `${r.left - s.left - 8}px`; label.style.top = `${r.top - s.top + 10}px`;
+    label.style.transform = "translateX(-100%)";
+    label.classList.add("show");
+  }
+  function hideLabel() { label.classList.remove("show"); }
+
+  // ---- Card ----
+  function fillCard(loc) {
+    const src = /^https?:\/\//.test(loc.photo) ? loc.photo : asset(PHOTO_BASE + loc.photo);
+    document.getElementById("tt-photo").style.backgroundImage = `url("${src}")`;
+    document.getElementById("tt-landmark").textContent = loc.landmark;
+    document.getElementById("tt-eyebrow").textContent = loc.hq ? "Headquarters" : "Active service area";
+    document.getElementById("tt-title").textContent = loc.city;
+    document.getElementById("tt-county").textContent = loc.county;
+    document.getElementById("tt-lead").textContent = loc.lead ||
+      `Tact Tech provides customized security services throughout ${loc.city} and surrounding communities.`;
+    document.getElementById("tt-cities-cap").textContent = `Serving ${loc.county}`;
+    document.getElementById("tt-cities").innerHTML = (COUNTY_CITIES[loc.county] || [loc.city])
+      .map((c) => `<span${c === loc.city ? ' class="is-here"' : ""}>${c}</span>`).join("");
+    document.getElementById("tt-credit").textContent = `Placeholder photo: ${loc.credit}, via Wikimedia Commons`;
+  }
+  function placeCard(loc) {
+    if (isNarrow()) {
+      const h = card.offsetHeight || 380;
+      card.style.left = "12px"; card.style.right = "12px";
+      card.style.top = `${mapwrap.offsetTop + mapwrap.offsetHeight - h - 12}px`;
+      return;
+    }
+    card.style.right = "";
+    const p = map.project([loc.lng, loc.lat]);
+    const w = card.offsetWidth || 340, h = card.offsetHeight || 460;
+    const W = mapwrap.clientWidth, H = mapwrap.clientHeight;
+    let left = p.x - w - 56, top = p.y - h * 0.55;
+    if (section.classList.contains("footage-on")) { left = W - w - Math.round(W * 0.035); top = (H - h) / 2; } // dock right so the footage subject stays visible
+    left = Math.max(16, Math.min(left, W - w - 16));
+    top = Math.max(16, Math.min(top, H - h - 16));
+    card.style.left = `${left}px`; card.style.top = `${top}px`;
+  }
+
+  // ---- Camera choreography: zoom into the city, tilt into 3D, then the landmark card ----
+  let active = null, orbitRAF = null, flightId = 0;
+
+  function stopOrbit() { if (orbitRAF) cancelAnimationFrame(orbitRAF); orbitRAF = null; }
+  function startOrbit() {
+    if (reduceMotion) return;
+    let last = performance.now();
+    const step = (t) => {
+      const dt = (t - last) / 1000; last = t;
+      map.setBearing(map.getBearing() + dt * 2.2 / TS); // slow 3D drift around the city
+      orbitRAF = requestAnimationFrame(step);
+    };
+    orbitRAF = requestAnimationFrame(step);
+  }
+
+  function activate(loc) {
+    if (active && active.id === loc.id) return;
+    active = loc; hideLabel(); stopOrbit();
+    card.classList.remove("show");
+    markers.forEach((m) => {
+      m.el.classList.toggle("is-active", m.loc.id === loc.id);
+      m.el.classList.toggle("is-dim", m.loc.id !== loc.id);
+    });
+    fillCard(loc);
+    const myFlight = ++flightId;
+    hideFootage();
+    if (loc.footage) prepFootage(asset(loc.footage), loc.footageLoop !== false);
+    const target = { center: [loc.lng, loc.lat], zoom: loc.hq ? 15.9 : 14.9, pitch: loc.pitch || 45, bearing: loc.bearing, padding: focusPadding() };
+    const arrive = () => {
+      if (myFlight !== flightId || !active) return;
+      placeCard(loc); card.classList.add("show"); if (!section.classList.contains("footage-on")) startOrbit();
+    };
+    if (reduceMotion) { map.jumpTo(target); if (loc.footage) showFootage(myFlight); setTimeout(arrive, 120); return; }
+    map.flyTo({ ...target, duration: 3200 * TS, curve: 1.5, essential: true });
+    if (loc.footage) {
+      // hand off to real footage while the camera is still settling, so the zoom reads as one continuous move
+      setTimeout(() => { if (myFlight === flightId && active) showFootage(myFlight); }, 2300 * TS);
+      setTimeout(arrive, 3300 * TS);
+    } else {
+      map.once("moveend", () => setTimeout(arrive, 120 * TS));
+    }
+  }
+
+  function deactivate(e) {
+    if (!active) return;
+    if (window.__ttDebug) console.log("deactivate:", e && e.type, e && e.target && (e.target.id || e.target.className));
+    active = null; flightId++; stopOrbit(); hideFootage();
+    card.classList.remove("show");
+    markers.forEach((m) => m.el.classList.remove("is-active", "is-dim"));
+    if (!home) saveHome();
+    const opts = { center: home.center, zoom: home.zoom, pitch: 0, bearing: 0, padding: home.padding };
+    if (reduceMotion) map.jumpTo(opts); else map.flyTo({ ...opts, duration: 2200 * TS, curve: 1.3, essential: true });
+  }
+
+  map.on("load", () => map.setLight({ anchor: "map", color: "#ffffff", intensity: 0.38, position: [1.25, 215, 40] }));
+
+  // ---- Real footage layer ----
+  const footage = document.getElementById("tt-footage");
+  const video = document.getElementById("tt-video");
+  let footageTimer = null;
+  function prepFootage(src, loop) {
+    video.loop = loop;
+    if (!video.src.endsWith(src)) { video.src = src; video.preload = "auto"; video.load(); }
+    try { video.currentTime = 0; } catch (e) {}
+  }
+  function showFootage(flight) {
+    clearTimeout(footageTimer);
+    video.playbackRate = 1 / TS; // only differs from 1 in demo-recording mode
+    const go = () => {
+      if (flight !== flightId || !active) return; // the visitor has moved on
+      const p = video.play(); if (p && p.catch) p.catch(() => {});
+      footage.classList.add("show"); section.classList.add("footage-on"); stopOrbit();
+    };
+    // on a slow connection, stay on the map until the clip can actually play
+    if (video.readyState >= 3) go(); else video.addEventListener("canplay", go, { once: true });
+  }
+  function hideFootage() {
+    footage.classList.remove("show"); section.classList.remove("footage-on");
+    clearTimeout(footageTimer); footageTimer = setTimeout(() => { if (!footage.classList.contains("show")) video.pause(); }, 1000 * TS);
+  }
+  // Each clip loads only when its pin is hovered (prepFootage), with the 2.3s fly-in as lead time.
+  // No section-wide preload: seven clips is about 40MB, too much to pull before anyone asks for a city.
+
+  // Keep the card attached to the city while the camera drifts
+  map.on("move", () => { if (active && card.classList.contains("show")) placeCard(active); });
+
+  // Return to the state view when the cursor leaves the map, moves onto the copy column, or "All areas" is clicked
+  section.addEventListener("mouseleave", deactivate);
+  copy.addEventListener("mouseenter", deactivate);
+  document.getElementById("tt-back").addEventListener("click", deactivate);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") deactivate(); });
+  window.addEventListener("resize", () => {
+    if (!active) { map.setPadding({ top: 0, bottom: 0, left: 0, right: 0 }); map.fitBounds(OVERVIEW_BOUNDS, { padding: overviewPadding(), duration: 0 }); saveHome(); }
+  });
+
+  // Warm the tile cache for each city so the zoom lands sharp
+  map.once("idle", () => {
+    if (reduceMotion) return;
+    PINS.forEach((loc, i) => setTimeout(() => {
+      const img = new Image();
+      const z = 13, n = 2 ** z;
+      const x = Math.floor((loc.lng + 180) / 360 * n);
+      const latR = loc.lat * Math.PI / 180;
+      const y = Math.floor((1 - Math.log(Math.tan(latR) + 1 / Math.cos(latR)) / Math.PI) / 2 * n);
+      img.src = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`;
+    }, i * 150));
+  });
+
+  window.__ttMap = { map, activate: (id) => activate(LOCATIONS.find((l) => l.id === id)), deactivate };
+})();
+</script>
+</body>
+</html>
