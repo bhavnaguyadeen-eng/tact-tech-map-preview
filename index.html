@@ -9,7 +9,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  /* Layout: slim review bar on top, the live map section filling the rest of the screen, exactly as it would sit on the homepage. */
+  /* Layout: slim review bar, then the live map section at full screen height, then more page below it,
+     so scrolling past the map can be checked the way it will work on the homepage. */
   :root {
     --navy: #06142e;
     --navy-2: #0b1f45;
@@ -22,11 +23,9 @@
     color-scheme: dark;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; background: var(--navy); color: var(--text); font-family: var(--body); }
-  body { display: flex; flex-direction: column; }
+  html, body { margin: 0; background: var(--navy); color: var(--text); font-family: var(--body); }
 
   .bar {
-    flex: none;
     display: flex; flex-wrap: wrap; align-items: center; gap: 10px 28px;
     padding-block: calc(12px + env(safe-area-inset-top, 0px)) 12px;
     padding-inline: max(20px, env(safe-area-inset-left, 0px));
@@ -44,11 +43,15 @@
   .how .touch { display: none; }
   @media (hover: none) { .how .mouse { display: none; } .how .touch { display: inline; } }
 
-  .stage { flex: 1 1 auto; min-height: 560px; position: relative; }
+  .stage { height: 100vh; min-height: 640px; position: relative; }
   .stage iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
 
+  .after { padding: 72px 20px 88px; text-align: center; background: #000; border-top: 1px solid var(--line); }
+  .after h2 { font-family: var(--display); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; font-size: clamp(26px, 3vw, 40px); margin: 0 0 12px; }
+  .after p { margin: 0 auto; max-width: 36em; font-size: 15px; line-height: 1.6; color: var(--muted); }
+
   .note {
-    flex: none; margin: 0;
+    margin: 0;
     padding-block: 10px calc(10px + env(safe-area-inset-bottom, 0px));
     padding-inline: 20px;
     font-size: 12px; line-height: 1.5; color: var(--muted); background: #000; border-top: 1px solid var(--line);
@@ -56,7 +59,10 @@
 
   @media (max-width: 700px) {
     .how { flex-basis: 100%; font-size: 13px; }
-    .stage { min-height: 760px; }
+  }
+  /* phones and small tablets: the map section stacks its text above the map, so give it the full height */
+  @media (max-width: 900px) {
+    .stage { height: 1120px; min-height: 0; }
   }
 </style>
 </head>
@@ -65,8 +71,8 @@
     <div class="brand"><b>TACT TECH</b><span>Security Solutions</span></div>
     <div class="tag">Service map preview</div>
     <p class="how">
-      <span class="mouse"><strong>Hover over a pin</strong> to fly into that city. To go back to the full map, move your cursor off the map, click <strong>← All areas</strong>, or press Esc.</span>
-      <span class="touch"><strong>Tap a pin</strong> to fly into that city. Tap <strong>← All areas</strong> to go back to the full map.</span>
+      <span class="mouse"><strong>Hover over a badge</strong> to fly into that city. To go back to the full map, move your cursor off the map, click <strong>← All areas</strong>, or press Esc.</span>
+      <span class="touch"><strong>Tap a badge</strong> to fly into that city. Tap <strong>← All areas</strong> to go back to the full map.</span>
     </p>
   </header>
 
@@ -74,6 +80,21 @@
     <iframe src="map.html" title="Tact Tech interactive service map" allow="autoplay; fullscreen"></iframe>
   </main>
 
+  <section class="after">
+    <h2>The homepage continues here</h2>
+    <p>On the website, the next section sits right below the map. Scrolling with your cursor over the map now carries on down the page.</p>
+  </section>
+
   <p class="note">Preview for review. Card photos and some city footage are placeholders until we have Tact Tech's own. Once approved, this map replaces the "See if we serve your area" section on the homepage.</p>
+<script>
+  // Phones: the map section stacks its text above the map, so size the frame to the whole section and let the page scroll as one
+  const frame = document.querySelector(".stage iframe"), stage = document.querySelector(".stage");
+  const fit = () => {
+    if (!matchMedia("(max-width: 900px)").matches) { stage.style.height = ""; return; }
+    try { stage.style.height = frame.contentDocument.getElementById("tt-section").offsetHeight + "px"; } catch (e) {}
+  };
+  frame.addEventListener("load", fit);
+  addEventListener("resize", fit);
+</script>
 </body>
 </html>

@@ -1,0 +1,36 @@
+Placeholder photos from Wikimedia Commons. Replace with Taylor's photos before launch, or credit as below.
+
+vero: Vero_Beach_arial_view_at_night_(2023).jpg | Kiran891 | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:Vero_Beach_arial_view_at_night_(2023).jpg
+psl: Clover_Park_Photo_by_Jonathan_Puello.jpg | JonathanPuello | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:Clover_Park_Photo_by_Jonathan_Puello.jpg
+stuart: Stuart,_FL._Downtown.jpg | JonathanPuello | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:Stuart,_FL._Downtown.jpg
+wpb: West_Palm_Beach,_Florida,_US,_skyline.jpg | Jud McCranie | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:West_Palm_Beach,_Florida,_US,_skyline.jpg
+hq: Boynton_Beach,_Florida.jpg | Quintin Soloviev | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Boynton_Beach,_Florida.jpg
+ftl: Skyline_of_Fort_Lauderdale,_Nov-15.jpg | KeanoManu | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:Skyline_of_Fort_Lauderdale,_Nov-15.jpg
+miami: Miami_Skyline_at_Sunrise_9_Apr_2025_from_arriving_cruise_ship_(cropped).jpg | Euthman | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Miami_Skyline_at_Sunrise_9_Apr_2025_from_arriving_cruise_ship_(cropped).jpg
+
+boca-raton: Boca_Raton_FL_Old_City_Hall_museum06.jpg | Ebyabe | CC BY-SA 3.0 | https://commons.wikimedia.org/wiki/File:Boca_Raton_FL_Old_City_Hall_museum06.jpg
+delray-beach: Delray_Beach,_Florida.jpg | Quintin Soloviev | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Delray_Beach,_Florida.jpg
+greenacres: Flag_of_Greenacres,_Florida.jpg | Eightiesdude / Eightiesdude at English Wikipedia | Public domain | https://commons.wikimedia.org/wiki/File:Flag_of_Greenacres,_Florida.jpg
+jupiter: MY_Public_Lands_Roadtrip-_Jupiter_Inlet_Lighthouse_Outstanding_Natural_Area_in_Florida_(18473841561).jpg | Bureau of Land Management | Public domain | https://commons.wikimedia.org/wiki/File:MY_Public_Lands_Roadtrip-_Jupiter_Inlet_Lighthouse_Outstanding_Natural_Area_in_Florida_(18473841561).jpg
+lake-worth-beach: Lake_Worth_Pier.jpg | The original uploader was Eighties1980 at English Wikipedia. | CC BY 2.5 | https://commons.wikimedia.org/wiki/File:Lake_Worth_Pier.jpg
+wellington: Beezie_Madden_Onlight_WEF_2008.jpg | Julia Rubinic | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Beezie_Madden_Onlight_WEF_2008.jpg
+belle-glade: Belle_Glade_sign.jpg | Jair | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:Belle_Glade_sign.jpg
+pahokee: Pahokee_FL_marina01.jpg | Ebyabe | CC BY-SA 3.0 | https://commons.wikimedia.org/wiki/File:Pahokee_FL_marina01.jpg
+indiantown: SeminoleInn.jpg | SebasTorrente | CC BY-SA 3.0 | https://commons.wikimedia.org/wiki/File:SeminoleInn.jpg
+palm-city: Peter_and_Julie_Cummings_Library_Palm_City_FL-001.JPG | Stephen B Calvert Clariosophic | CC BY-SA 3.0 | https://commons.wikimedia.org/wiki/File:Peter_and_Julie_Cummings_Library_Palm_City_FL-001.JPG
+jensen-beach: Causeway_Circle,_Jensen_Beach,_Florida_002.jpg | SZtephen B Calvert Clariosophic | CC BY-SA 3.0 | https://commons.wikimedia.org/wiki/File:Causeway_Circle,_Jensen_Beach,_Florida_002.jpg
+fort-pierce: Fort_Pierce_Marina.jpg | JonathanPuello | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:Fort_Pierce_Marina.jpg
+tradition: Lake_Tradition_at_twilight,_Port_St._Lucie,_Florida.jpg | Serge Yatunin | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:Lake_Tradition_at_twilight,_Port_St._Lucie,_Florida.jpg
+sebastian: Sebastian_Inlet,_Florida_001.jpg | Leonard J. DeFrancisci | CC BY-SA 3.0 | https://commons.wikimedia.org/wiki/File:Sebastian_Inlet,_Florida_001.jpg
+davie: Town_Hall_(Davie,_Florida).jpg | Tamanoeconomico | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:Town_Hall_(Davie,_Florida).jpg
+hallandale-beach: Gulfstream_Sunshine_Millions_2006.jpg | Aht820 | Public domain | https://commons.wikimedia.org/wiki/File:Gulfstream_Sunshine_Millions_2006.jpg
+hollywood: Hollywood_Beach_(2).jpg | Tamanoeconomico | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:Hollywood_Beach_(2).jpg
+lauderhill: Lauderhill,_Florida_-_Central_Broward_Regional_Park_and_cricket_stadium_-_interior.jpg | Brian Crawford | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Lauderhill,_Florida_-_Central_Broward_Regional_Park_and_cricket_stadium_-_interior.jpg
+miramar: Miramar,_Florida_neighborhood.png | AccuTour Digital Media Solutions | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Miramar,_Florida_neighborhood.png
+pompano-beach: Pompano_Beach,_Florida.jpg | Quintin Soloviev | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Pompano_Beach,_Florida.jpg
+sunrise: View_of_Amerant_Bank_Arena_from_Publix_Plaza_before_a_Florida_Panthers_game_during_the_2023-24_season..jpg | Gatorfan252525 | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:View_of_Amerant_Bank_Arena_from_Publix_Plaza_before_a_Florida_Panthers_game_during_the_2023-24_season..jpg
+weston: Weston_Gateway_Pier,_West_Mall_Road_at_SR_84,_Weston,_Florida_February_23,_2022_B.jpg | AITFFan1 | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:Weston_Gateway_Pier,_West_Mall_Road_at_SR_84,_Weston,_Florida_February_23,_2022_B.jpg
+homestead: Homestead-Miami_Stadium.JPG | Chris Green | Public domain | https://commons.wikimedia.org/wiki/File:Homestead-Miami_Stadium.JPG
+miami-beach: Ocean_Drive_in_the_Miami_Beach_Art_Deco_Historic_District.jpg | Robbschultz69 | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:Ocean_Drive_in_the_Miami_Beach_Art_Deco_Historic_District.jpg
+orlando (hotlinked, 21 Oct): Lake_Eola_and_Orlando_Skyline_seen_in_2024.jpg | JER3L1337 | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Lake_Eola_and_Orlando_Skyline_seen_in_2024.jpg
+fort-myers (hotlinked, 21 Oct): 20201019_102419_Ft_Myers_Downtown_Commercial_District_The_Arcade_Theater.jpg | Dockside living | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:20201019_102419_Ft_Myers_Downtown_Commercial_District_The_Arcade_Theater.jpg
