@@ -4,7 +4,8 @@ vero: Vero_Beach_arial_view_at_night_(2023).jpg | Kiran891 | CC BY-SA 4.0 | http
 psl: Clover_Park_Photo_by_Jonathan_Puello.jpg | JonathanPuello | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:Clover_Park_Photo_by_Jonathan_Puello.jpg
 stuart: Stuart,_FL._Downtown.jpg | JonathanPuello | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:Stuart,_FL._Downtown.jpg
 wpb: West_Palm_Beach,_Florida,_US,_skyline.jpg | Jud McCranie | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:West_Palm_Beach,_Florida,_US,_skyline.jpg
-hq: Boynton_Beach,_Florida.jpg | Quintin Soloviev | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Boynton_Beach,_Florida.jpg
+hq: hq-patrol.jpg | Tact Tech Security Solutions (frame from Taylor's own drone footage, 20 Feb 2026, sent 24 Oct) | owned by the client, no credit needed
+(hq.jpg, the Boynton Beach water tower by Quintin Soloviev, CC BY 4.0, is no longer used: it was captioned as the HQ)
 ftl: Skyline_of_Fort_Lauderdale,_Nov-15.jpg | KeanoManu | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:Skyline_of_Fort_Lauderdale,_Nov-15.jpg
 miami: Miami_Skyline_at_Sunrise_9_Apr_2025_from_arriving_cruise_ship_(cropped).jpg | Euthman | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Miami_Skyline_at_Sunrise_9_Apr_2025_from_arriving_cruise_ship_(cropped).jpg
 
